@@ -40,10 +40,11 @@ st() ->
 st(FileName) ->
 	{ok, Bin} = file:read_file(lists:append("data/", FileName)),
 	Coords = parse_head(Bin),
+  %io:format("~p~n", [Coords]),
 	Signals = extract_signals(Bin, Coords, []),
-	io:format("File: ~s, Entries: ~p~n", [FileName, lists:foldl(fun (_, Acc) -> Acc + 1 end, 0, Signals)]),
-	print_sigs(Signals),
-	save(Signals, lists:append("extracted/", filename:basename(FileName, ".P01"))).
+	{saved, Num} = save(Signals, lists:append("extracted/", filename:basename(FileName, ".P01"))),
+	io:format("File: ~s, Entries: ~p, ~p~n", [FileName, lists:foldl(fun (_, Acc) -> Acc + 1 end, 0, Signals), Num]),
+	print_sigs(Signals).
 
 % print info about signals
 print_sigs([]) ->
@@ -73,18 +74,16 @@ find(Bin, Str, Pos) ->
 % get info about signals. look for it in Bin, at position Start, accumulate in 
 % Coords in tuples {name: Name, start position: Pos, length: Len}
 get_coordinates(Bin, Start, Coords) ->
-	<<_:Start, Name:21/binary, % 21 bajts reserved name of the signal
+	case Bin of
+	  <<_:Start, Name:21/binary, % 21 bajts reserved name of the signal
 		Pos:32/little-integer, % start position of the signal
 		Len:32/little-integer, % length of the signal
-		Sep:8, _Rest/binary>> = Bin, % separator sign
-  Name1 = get_name(Name),
-%	io:format("Entry: '~s', Pos: '~p', Len: '~p', Something1: ~p, Something2: ~p, Sep: '~p'~n", [Name1, Pos, Len, Something1, Something2, Sep]),
-%	io:format("Entry: '~s', Pos: '~p', Len: '~p', Sep: '~p'~n", [Name1, Pos, Len, Sep]),
-	case Sep of
-		0 -> 
-			{ok, lists:reverse(Coords)};
-		_ -> %Start + 30 * 8
-			get_coordinates(Bin, Start + 30 * 8, [{Name1, Pos, Len}| Coords]) 
+		_Sep:8, _Rest/binary>> % separator sign
+		when (Len > 0) ->
+      Name1 = get_name(Name),
+      get_coordinates(Bin, Start + 30 * 8, [{Name1, Pos, Len}| Coords]);
+    _ ->
+      {ok, lists:reverse(Coords)}
 	end.
 
 % extract name from binary, repair encoding and prepare it to be safe for filename 
@@ -115,9 +114,12 @@ trim_spaces([A | List], Trimmed) ->
   trim_spaces(List, [A | Trimmed]).
 
 % extract signals from binary Bin, given list of positions Pos and lengths Len
-extract_signals(_, [], Signals) ->
-  Signals;
+extract_signals(Bin, [{Name, Pos, Len}], Signals) ->
+  io:format("Tuuuuu: S: ~p, P: ~p, L: ~p~n", [byte_size(Bin), Pos, Len]),
+  <<_:Pos/binary, Signal/binary>> = Bin,
+  lists:reverse([{Name, Signal} | Signals]);
 extract_signals(Bin, [{Name, Pos, Len} | Coords], Signals) ->
+  io:format("aaa~paaa~n", [{Name, Pos, Len}]),
   <<_:Pos/binary, Signal:Len/binary, _Rest/binary>> = Bin,
   extract_signals(Bin, Coords, [{Name, Signal} | Signals]).
 
@@ -128,11 +130,13 @@ save(Signals, Dir) ->
     {error, eexist} -> ok;
     {error, Error} -> io:format("Unable to create directory, because: ~p~n", [Error])
   end,
-  save_signals(Signals, lists:append(Dir, "/")).
+  save_signals(Signals, lists:append(Dir, "/"), 1).
 
 % for every tuple in Signals save signal Sig to file named Name in directory Dir
-save_signals([], _) ->
-  ok;
-save_signals([{Name, Sig} | Signals], Dir) ->
-  ok = file:write_file(lists:append(Dir, Name), Sig),
-  save_signals(Signals, Dir).
+% N enumerates files to assure uniqueness of the names
+save_signals([], _, N) ->
+  {saved, N - 1};
+save_signals([{Name, Sig} | Signals], Dir, N) ->
+  FilePath = io_lib:format("~s~2..0w.~s", [Dir, N, Name]),
+  ok = file:write_file(FilePath, Sig),
+  save_signals(Signals, Dir, N + 1).
