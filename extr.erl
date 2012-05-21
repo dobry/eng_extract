@@ -25,18 +25,28 @@ get_int(<<V:16/little-integer, A:16/little-integer, Rest/binary>>) ->
 
 %%% parse heading of the file
 st() ->
-  st("hoppe_malgorzata.P01").
+  st("data/hoppe_malgorzata.P01").
 
 st(Filename) ->
 	{ok, Bin} = file:read_file(Filename),
-	parse_head(Bin).
+	Coords = parse_head(Bin),
+	Signals = extract_signals(Bin, Coords, []),
+	print_sigs(Signals).
+
+% print info about signals
+print_sigs([]) ->
+  ok;
+print_sigs([{Name, Sig} | Ss]) ->
+  io:format("Name: ~s, Bytes: ~p~n", [Name, byte_size(Sig)]),
+  print_sigs(Ss).
 
 % get Bin, parse informations at the start
 parse_head(Bin) ->
 	{ok, Pos} = find(Bin, <<"KALIBRACJA">>, 0),
-	io:format("Got pos: ~pB~n", [Pos/8]),
+	%io:format("Got pos: ~pB~n", [Pos/8]),
 	{ok, Coords} = get_coordinates(Bin, Pos, []),
-	io:format("From: ~w :tO~n", [Coords]).
+	%io:format("From: ~w :tO~n", [Coords]).
+	Coords.
 
 % find Str in Bin, start at position Pos
 find(Bin, Str, Pos) ->
@@ -93,4 +103,9 @@ trim_spaces([A, B | List], Trimmed) when ((A =:= 32) and  (B =:= 32)) ->
 trim_spaces([A | List], Trimmed) ->
   trim_spaces(List, [A | Trimmed]).
 
-
+% extract signals from binary Bin, given list of positions Pos and lengths Len
+extract_signals(_, [], Signals) ->
+  Signals;
+extract_signals(Bin, [{Name, Pos, Len} | Coords], Signals) ->
+  <<_:Pos/binary, Signal:Len/binary, _Rest/binary>> = Bin,
+  extract_signals(Bin, Coords, [{Name, Signal} | Signals]).
