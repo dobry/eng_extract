@@ -27,11 +27,12 @@ get_int(<<V:16/little-integer, A:16/little-integer, Rest/binary>>) ->
 st() ->
   st("data/hoppe_malgorzata.P01").
 
-st(Filename) ->
-	{ok, Bin} = file:read_file(Filename),
+st(FilePath) ->
+	{ok, Bin} = file:read_file(FilePath),
 	Coords = parse_head(Bin),
 	Signals = extract_signals(Bin, Coords, []),
-	print_sigs(Signals).
+	print_sigs(Signals),
+	save(Signals, "extracted").
 
 % print info about signals
 print_sigs([]) ->
@@ -109,3 +110,19 @@ extract_signals(_, [], Signals) ->
 extract_signals(Bin, [{Name, Pos, Len} | Coords], Signals) ->
   <<_:Pos/binary, Signal:Len/binary, _Rest/binary>> = Bin,
   extract_signals(Bin, Coords, [{Name, Signal} | Signals]).
+
+% create directory if needed, then save signals to separate files
+save(Signals, Dir) ->
+  case file:make_dir(Dir) of
+    ok -> ok;
+    {error, eexist} -> ok;
+    {error, Error} -> io:format("Unable to create directory, because: ~p~n", [Error])
+  end,
+  save_signals(Signals, lists:append(Dir, "/")).
+
+% for every tuple in Signals save signal Sig to file named Name in directory Dir
+save_signals([], _) ->
+  ok;
+save_signals([{Name, Sig} | Signals], Dir) ->
+  ok = file:write_file(lists:append(Dir, Name), Sig),
+  save_signals(Signals, Dir).
