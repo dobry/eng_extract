@@ -22,17 +22,27 @@ get_int(<<V:16/little-integer, A:16/little-integer, Rest/binary>>) ->
 	io:format("'~w', '~w'~n", [V, A]),
 	Rest.
 
+%%% parse all suplied files
+st1() ->
+  {ok, Files} = file:list_dir("data/"),
+  io:format("~p~n", [Files]),
+  st1(Files).
+  
+st1(Names) ->
+  lists:map(fun st/1, Names).
 
-%%% parse heading of the file
+  
+
+%%% parse heading of the file, extract signals, save them to separate files
 st() ->
-  st("data/hoppe_malgorzata.P01").
+  st("hoppe_malgorzata.P01").
 
-st(FilePath) ->
-	{ok, Bin} = file:read_file(FilePath),
+st(FileName) ->
+	{ok, Bin} = file:read_file(lists:append("data/", FileName)),
 	Coords = parse_head(Bin),
 	Signals = extract_signals(Bin, Coords, []),
 	print_sigs(Signals),
-	save(Signals, "extracted").
+	save(Signals, lists:append("extracted/", filename:basename(FileName, ".P01"))).
 
 % print info about signals
 print_sigs([]) ->
@@ -64,12 +74,12 @@ find(Bin, Str, Pos) ->
 get_coordinates(Bin, Start, Coords) ->
 	<<_:Start, Name:21/binary, % 21 bajts reserved name of the signal
 		Pos:16/little-integer, % start position of the signal
-		_Something1:16/little-integer, % who knows what is it?
+		Something1:16/little-integer, % who knows what is it?
 		Len:16/little-integer, % length of the signal
-		_Something2:16/little-integer, % once again unknown value
+		Something2:16/little-integer, % once again unknown value
 		Sep:8, _Rest/binary>> = Bin, % separator sign
   Name1 = get_name(Name),
-	io:format("Entry: '~s', Pos: '~p', Len: '~p', Sep: '~p'~n", [Name1, Pos, Len, Sep]),
+	io:format("Entry: '~s', Pos: '~p', Len: '~p', Something1: ~p, Something2: ~p, Sep: '~p'~n", [Name1, Pos, Len, Something1, Something2, Sep]),
 	case Sep of
 		0 -> 
 			{ok, lists:reverse(Coords)};
