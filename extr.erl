@@ -35,7 +35,7 @@ st1(Names) ->
 
 %%% parse heading of the file, extract signals, save them to separate files
 st() ->
-  st("hoppe_malgorzata.P01").
+  st("szaniawska_chydzinska_jadwiga.P01").
 
 st(FileName) ->
 	{ok, Bin} = file:read_file(lists:append("data/", FileName)),
@@ -59,7 +59,7 @@ parse_head(Bin) ->
 	%io:format("Got pos: ~pB~n", [Pos/8]),
 	{ok, Coords} = get_coordinates(Bin, Pos, []),
 	%io:format("From: ~w :tO~n", [Coords]).
-	Coords.
+	calc_correct_lengths(Coords, []).
 
 % find Str in Bin, start at position Pos
 find(Bin, Str, Pos) ->
@@ -119,7 +119,7 @@ extract_signals(Bin, [{Name, Pos, Len}], Signals) ->
   <<_:Pos/binary, Signal/binary>> = Bin,
   lists:reverse([{Name, Signal} | Signals]);
 extract_signals(Bin, [{Name, Pos, Len} | Coords], Signals) ->
-  io:format("aaa~paaa~n", [{Name, Pos, Len}]),
+  io:format("~s, ~.16# ~.16# ~.16#~n", [Name, Pos, Len, Pos + Len]),
   <<_:Pos/binary, Signal:Len/binary, _Rest/binary>> = Bin,
   extract_signals(Bin, Coords, [{Name, Signal} | Signals]).
 
@@ -140,3 +140,10 @@ save_signals([{Name, Sig} | Signals], Dir, N) ->
   FilePath = io_lib:format("~s~2..0w.~s", [Dir, N, Name]),
   ok = file:write_file(FilePath, Sig),
   save_signals(Signals, Dir, N + 1).
+
+
+calc_correct_lengths([Coords], Correct) ->
+  lists:reverse([Coords | Correct]);
+calc_correct_lengths([{Name1, Pos1, _Len1}, {Name2, Pos2, _Len2} | Coords], Correct) ->
+  %io:format("Lala: ~p ~p ~p", [Name1, Pos1, Pos2 - Pos1]),
+  calc_correct_lengths([{Name2, Pos2, 0} | Coords], [{Name1, Pos1, Pos2 - Pos1} | Correct]).
