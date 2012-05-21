@@ -41,6 +41,7 @@ st(FileName) ->
 	{ok, Bin} = file:read_file(lists:append("data/", FileName)),
 	Coords = parse_head(Bin),
 	Signals = extract_signals(Bin, Coords, []),
+	io:format("File: ~s, Entries: ~p~n", [FileName, lists:foldl(fun (_, Acc) -> Acc + 1 end, 0, Signals)]),
 	print_sigs(Signals),
 	save(Signals, lists:append("extracted/", filename:basename(FileName, ".P01"))).
 
@@ -73,13 +74,12 @@ find(Bin, Str, Pos) ->
 % Coords in tuples {name: Name, start position: Pos, length: Len}
 get_coordinates(Bin, Start, Coords) ->
 	<<_:Start, Name:21/binary, % 21 bajts reserved name of the signal
-		Pos:16/little-integer, % start position of the signal
-		Something1:16/little-integer, % who knows what is it?
-		Len:16/little-integer, % length of the signal
-		Something2:16/little-integer, % once again unknown value
+		Pos:32/little-integer, % start position of the signal
+		Len:32/little-integer, % length of the signal
 		Sep:8, _Rest/binary>> = Bin, % separator sign
   Name1 = get_name(Name),
-	io:format("Entry: '~s', Pos: '~p', Len: '~p', Something1: ~p, Something2: ~p, Sep: '~p'~n", [Name1, Pos, Len, Something1, Something2, Sep]),
+%	io:format("Entry: '~s', Pos: '~p', Len: '~p', Something1: ~p, Something2: ~p, Sep: '~p'~n", [Name1, Pos, Len, Something1, Something2, Sep]),
+%	io:format("Entry: '~s', Pos: '~p', Len: '~p', Sep: '~p'~n", [Name1, Pos, Len, Sep]),
 	case Sep of
 		0 -> 
 			{ok, lists:reverse(Coords)};
