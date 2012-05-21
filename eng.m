@@ -5,30 +5,26 @@ close all;
 
 
 
-Dir = 'extracted/';
+% Dir = 'extracted/skrzycka_ewa/';
+Dir = 'extracted/szaniawska_chydzinska_jadwiga/';
+% Dir = 'extracted/olczak_iwona/';
+% Dir = 'extracted/lechkun_malgorzata/';
+% Dir = 'extracted/hoppe_malgorzata/';
+% Dir = 'extracted/domagala_krystyna/';
+
 Sig = dir(Dir)
 L = length(Sig)
 
 for i = 3 : L
     
     fileID = fopen(strcat(Dir, Sig(i).name),'r');
-    Int16 = fread(fileID, inf, 'int16'); % prawdopodobnie to jest to
-%     frewind(fileID);
-%     Int32 = fread(fileID, inf, 'int32');
+    Int16 = fread(fileID, inf, 'int16');
     
     figure
-       
-%     subplot(2, 1, 1);
     hold on;
     plot(Int16);
     title(Sig(i).name);
     hold off;
-    
-%     subplot(2, 1, 2);
-%     hold on;
-%     plot(Int32);
-%     title(Sig(i).name);
-%     hold off;
     
     fclose(fileID);
 end

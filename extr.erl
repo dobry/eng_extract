@@ -141,8 +141,8 @@ save_signals([{Name, Sig} | Signals], Dir, N) ->
   ok = file:write_file(FilePath, Sig),
   save_signals(Signals, Dir, N + 1).
 
-% calculates real length of a signal by substracting positions of two adjacent signals
 calc_correct_lengths([Coords], Correct) ->
   lists:reverse([Coords | Correct]);
 calc_correct_lengths([{Name1, Pos1, _Len1}, {Name2, Pos2, _Len2} | Coords], Correct) ->
+  %io:format("Lala: ~p ~p ~p", [Name1, Pos1, Pos2 - Pos1]),
   calc_correct_lengths([{Name2, Pos2, 0} | Coords], [{Name1, Pos1, Pos2 - Pos1} | Correct]).
