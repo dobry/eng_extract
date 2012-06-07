@@ -1,25 +1,46 @@
-%% narysuj wszystkie sygnaly
-
+%% 
 clear all;
 close all;
 
+Path = 'extracted/';
 
+% patients
+% Dir = 'skrzycka_ewa';
+% Dir = 'olczak_iwona';
+% Dir = 'lechkun_malgorzata';
+% Dir = 'hoppe_malgorzata';
+% Dir = 'domagala_krystyna';
+Dir = 'szaniawska_chydzinska_jadwiga';
 
-% Dir = 'extracted/skrzycka_ewa/';
-Dir = 'extracted/szaniawska_chydzinska_jadwiga/';
-% Dir = 'extracted/olczak_iwona/';
-% Dir = 'extracted/lechkun_malgorzata/';
-% Dir = 'extracted/hoppe_malgorzata/';
-% Dir = 'extracted/domagala_krystyna/';
+%% save petient's signals to .mat files
 
-Sig = dir(Dir)
-L = length(Sig)
+MatDir = 'mat/';
+mkdir(MatDir);
+
+Sig = dir(strcat(Path, Dir));
+L = length(Sig);
+
+for i = 3 : L
+    fileID = fopen(strcat([Path, Dir, '/', Sig(i).name]),'r');
+    data = fread(fileID, inf, 'int16');
+
+    genvarname([Sig(i).name(4:end)])
+    patient.(genvarname([Sig(i).name(4:end)])) = data;
+
+    fclose(fileID);
+end
+save(strcat([MatDir, Dir, '.mat']), 'patient');
+
+%% plot patient's signals from binary files
+
+Sig = dir(strcat(Path, Dir));
+L = length(Sig);
 
 for i = 3 : L
     
-    fileID = fopen(strcat(Dir, Sig(i).name),'r');
+    fileID = fopen(strcat([Path, Dir, '/', Sig(i).name]),'r');
     Int16 = fread(fileID, inf, 'int16');
-    
+
     figure
     hold on;
     plot(Int16);
@@ -28,12 +49,3 @@ for i = 3 : L
     
     fclose(fileID);
 end
-
-%% narysuj wybrany sygnal
-
-fileID = fopen(strcat(Dir, 'signal10'),'r');
-Int16 = fread(fileID, inf, 'int16'); % prawdopodobnie to jest to
-figure
-%subplot(9, 2, i - 1);
-plot(Int16);
-fclose(fileID);
